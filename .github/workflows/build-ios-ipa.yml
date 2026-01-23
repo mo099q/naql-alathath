@@ -1,4 +1,4 @@
-name: Build iOS IPA (TrollStore)
+name: Build iOS IPA (Auto Fix + TrollStore)
 
 on:
   workflow_dispatch:
@@ -16,20 +16,48 @@ jobs:
         with:
           flutter-version: '3.19.0'
 
-      - name: Install dependencies
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Get dependencies
         run: |
           cd customer_app
           flutter pub get
 
+      - name: Ensure iOS platform exists
+        run: |
+          cd customer_app
+          flutter create . --platforms=ios
+
+      - name: Fix Info.plist (auto)
+        run: |
+          PLIST=customer_app/ios/Runner/Info.plist
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName NaqlCustomer" "$PLIST" || \
+          /usr/libexec/PlistBuddy -c "Add :CFBundleName string NaqlCustomer" "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Naql" "$PLIST" || \
+          /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Naql" "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Set :UILaunchStoryboardName LaunchScreen" "$PLIST" || true
+
+          /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" "$PLIST" || true
+
       - name: Build iOS (no codesign)
         run: |
           cd customer_app
+          flutter clean
           flutter build ios --release --no-codesign
 
-      - name: Create IPA manually
+      - name: Verify Runner.app
+        run: |
+          ls customer_app/build/ios/iphoneos/Runner.app
+          test -d customer_app/build/ios/iphoneos/Runner.app
+
+      - name: Create IPA structure
         run: |
           cd customer_app
-          mkdir Payload
+          mkdir -p Payload
           cp -R build/ios/iphoneos/Runner.app Payload/
           zip -r NaqlCustomer.ipa Payload
 
