@@ -7,13 +7,14 @@ on:
 jobs:
   build_ios:
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v3
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0' # أو أي نسخة تستخدمها
+          flutter-version: '3.13.0' # عدّل على حسب النسخة لديك
 
       - name: Get dependencies
         run: flutter pub get
@@ -22,7 +23,7 @@ jobs:
         run: flutter build ios --release --no-codesign
 
       - name: Upload IPA
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Runner
           path: build/ios/iphoneos/Runner.app
