@@ -17,3 +17,10 @@ export class OrdersController {
     return this.service.list();
   }
 }
+acceptOrder(orderId: number, driverId: number) {
+  return this.service.assignDriver(orderId, driverId);
+}
+
+completeOrder(orderId: number) {
+  return this.service.complete(orderId);
+}
