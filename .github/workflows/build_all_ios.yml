@@ -1,4 +1,4 @@
-name: Build All iOS Apps
+name: Auto Build All iOS Apps
 
 on:
   push:
@@ -13,16 +13,33 @@ jobs:
         app: [customer_app, driver_app, admin_panel]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.13.0'
 
-      - name: Get dependencies
-        run: flutter pub get
-        working-directory: ${{ matrix.app }}
+      - name: Prepare project folder
+        run: |
+          if [ ! -f "${{ matrix.app }}/pubspec.yaml" ]; then
+            echo "Creating Flutter project for ${{ matrix.app }}"
+            flutter create ${{ matrix.app }}
+          fi
+
+      - name: Copy lib folder if exists
+        run: |
+          if [ -d "source_code/${{ matrix.app }}/lib" ]; then
+            cp -r source_code/${{ matrix.app }}/lib/* ${{ matrix.app }}/lib/
+          fi
+
+      - name: Ensure pubspec.yaml has SDK constraint
+        run: |
+          PUBSPEC="${{ matrix.app }}/pubspec.yaml"
+          if ! grep -q "sdk:" $PUBSPEC; then
+            echo "environment:\n  sdk: '>=3.1.0 <4.0.0'" >> $PUBSPEC
+          fi
 
       - name: Build IPA
         run: flutter build ios --release --no-codesign
