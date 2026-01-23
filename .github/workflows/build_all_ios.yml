@@ -1,0 +1,35 @@
+name: Build All iOS Apps
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build_apps:
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        app: [customer_app, driver_app, admin_panel]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.0'
+
+      - name: Get dependencies
+        run: flutter pub get
+        working-directory: ${{ matrix.app }}
+
+      - name: Build IPA
+        run: flutter build ios --release --no-codesign
+        working-directory: ${{ matrix.app }}
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}_Runner
+          path: ${{ matrix.app }}/build/ios/iphoneos/Runner.app
