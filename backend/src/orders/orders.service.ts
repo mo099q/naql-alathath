@@ -32,3 +32,18 @@ export class OrdersService {
     return this.orders;
   }
 }
+assignDriver(orderId: number, driverId: number) {
+  const order = this.orders.find(o => o.id === orderId);
+  if (!order) return null;
+
+  order.status = 'accepted';
+  return order;
+}
+
+complete(orderId: number) {
+  const order = this.orders.find(o => o.id === orderId);
+  if (!order) return null;
+
+  order.status = 'completed';
+  return order;
+}
