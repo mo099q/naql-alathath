@@ -1,0 +1,94 @@
+name: Auto Build All iOS Apps
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build_apps:
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        app: [customer_app, driver_app, admin_panel]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.0'
+
+      - name: Prepare Flutter project
+        run: |
+          # إذا pubspec.yaml غير موجود، أنشئ مشروع Flutter جديد
+          if [ ! -f "${{ matrix.app }}/pubspec.yaml" ]; then
+            flutter create ${{ matrix.app }}
+          fi
+
+          # إذا lib موجود في source_code انسخه
+          if [ -d "source_code/lib" ]; then
+            cp -r source_code/lib/* ${{ matrix.app }}/lib/
+          fi
+
+          # أضف pubspec.yaml كامل مع SDK constraints إذا غير موجود
+          PUBSPEC="${{ matrix.app }}/pubspec.yaml"
+          if ! grep -q "sdk:" $PUBSPEC; then
+            echo "environment:\n  sdk: '>=3.1.0 <4.0.0'" >> $PUBSPEC
+          fi
+
+          # أنشئ Info.plist إذا غير موجود
+          if [ ! -f "${{ matrix.app }}/ios/Runner/Info.plist" ]; then
+            mkdir -p ${{ matrix.app }}/ios/Runner
+            cat <<EOT > ${{ matrix.app }}/ios/Runner/Info.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>Naql Alathath</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.naql.alathath.${{ matrix.app }}</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>يحتاج التطبيق الوصول لموقعك لتحديد موقعك على الخريطة</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>يحتاج التطبيق الوصول لموقعك لتتبع الطلبات أثناء التشغيل</string>
+</dict>
+</plist>
+EOT
+          fi
+
+          # أنشئ AppDelegate.swift مع Google Maps API Key
+          mkdir -p ${{ matrix.app }}/ios/Runner
+          cat <<EOT > ${{ matrix.app }}/ios/Runner/AppDelegate.swift
+import UIKit
+import Flutter
+import GoogleMaps
+
+@UIApplicationMain
+@objc class AppDelegate: FlutterAppDelegate {
+  override func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+    GMSServices.provideAPIKey("AIzaSyBcZ1lyH1hUfV9MRvq-C2xhr4DlfJ5w49o")
+    GeneratedPluginRegistrant.register(with: self)
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+}
+EOT
+
+      - name: Get dependencies
+        run: flutter pub get
+        working-directory: ${{ matrix.app }}
+
+      - name: Build IPA
+        run: flutter build ios --release --no-codesign
+        working-directory: ${{ matrix.app }}
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}_Runner
+          path: ${{ matrix.app }}/build/ios/iphoneos/Runner.app
