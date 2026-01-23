@@ -1,8 +1,6 @@
 class PaymentService {
-  static Future<String> pay(double amount) async {
-    // هذه نسخة تجريبية فقط
-    print('Processing payment: \$${amount}');
+  static Future<bool> pay(double amount) async {
     await Future.delayed(const Duration(seconds: 2));
-    return 'success'; // ممكن يرجع 'failed' لاحقًا
+    return true; // دائمًا نجاح
   }
 }
