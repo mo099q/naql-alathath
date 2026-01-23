@@ -1,8 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-
 class ApiService {
-  static const baseUrl = 'http://10.0.2.2:3000'; // لاحقًا استبدله بـ سيرفرك
+  static final List<Map<String, dynamic>> _orders = [];
 
   static Future<Map<String, dynamic>> createOrder({
     required String pickup,
@@ -10,17 +7,20 @@ class ApiService {
     required int workers,
     required String vehicle,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/orders'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'pickup': pickup,
-        'dropoff': dropoff,
-        'workers': workers,
-        'vehicle': vehicle,
-      }),
-    );
+    await Future.delayed(const Duration(seconds: 1));
 
-    return jsonDecode(response.body);
+    final order = {
+      'id': DateTime.now().millisecondsSinceEpoch,
+      'pickup': pickup,
+      'dropoff': dropoff,
+      'workers': workers,
+      'vehicle': vehicle,
+      'status': 'pending',
+    };
+
+    _orders.add(order);
+    return order;
   }
+
+  static List<Map<String, dynamic>> get orders => _orders;
 }
